@@ -1,3 +1,5 @@
+// import 'dart:html';
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +22,7 @@ class _NotesPageState extends State<NotesPage> {
   var total_notes=0;
   String cur_title='';
   String cur_desc='';
+  bool cur_status=false;
 
   final databaseReference = FirebaseDatabase.instance.reference();
   // total_notes=databaseReference.child("users/${widget.user.uid}/notes/")
@@ -57,7 +60,7 @@ class _NotesPageState extends State<NotesPage> {
 
     setState(() {});
   }
-
+  var checkedValue;
   @override
   void dispose() {
     noteDescriptionController.clear();
@@ -256,7 +259,7 @@ class _NotesPageState extends State<NotesPage> {
                             ),
                           ),
                         ),
-                        child: noteList(data[key]["title"],data[key]["description"],index),
+                        child: noteList(data[key]["title"],data[key]["description"],data[key]["done"],index),
                       ),
                     ));
               },
@@ -356,7 +359,9 @@ class _NotesPageState extends State<NotesPage> {
                         noteDescriptionController.text=data[key]['description'];
                         cur_title=data[key]['title'];
                         cur_desc=data[key]['description'];
-                        _settingModalBottomSheet(context,is_update: true,key_: key);
+                        cur_status=data[key]['done'];
+                        checkedValue=cur_status;
+                        _settingModalBottomSheet(context,is_update: true,key_: key,is_done: cur_status);
                       });
 
                     }
@@ -411,7 +416,7 @@ class _NotesPageState extends State<NotesPage> {
                         ),
                       ),
                     ),
-                    child: noteList(data[key]["title"],data[key]["description"],index),
+                    child: noteList(data[key]["title"],data[key]["description"],data[key]["done"],index),
                   ),
                 ));
               },
@@ -424,13 +429,13 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
-  Widget noteList(String title,String desc,int index) {
+  Widget noteList(String title,String desc,done,int index) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(5.5),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: noteColor[(index % noteColor.length).floor()],
+          color: done? Colors.green:Colors.red,
           borderRadius: BorderRadius.circular(5.5),
         ),
         height: 100,
@@ -489,8 +494,9 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
-  void _settingModalBottomSheet(context,{is_update:false,key_:""}) {
+  void _settingModalBottomSheet(context,{is_update:false,key_:"",is_done}) {
     // print
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -539,24 +545,41 @@ class _NotesPageState extends State<NotesPage> {
                                         .update({
                                       "title": noteHeadingController.text,
                                       "description": noteDescriptionController
-                                          .text
+                                          .text,
+                                      "done":checkedValue
                                     });
                                     noteHeadingController.clear();
                                     noteDescriptionController.clear();
+                                    checkedValue=false;
                                   });
                                 }
                                 else{
-                                  if(noteHeadingController.text!=cur_title || noteDescriptionController.text!=cur_desc) {
+                                  if(noteHeadingController.text!=cur_title || noteDescriptionController.text!=cur_desc ) {
                                     setState(() {
-                                      databaseReference.child("users/${widget.user
-                                          .uid}/notes/${key_}")
-                                          .update({
-                                        "title": noteHeadingController.text,
-                                        "description": noteDescriptionController
-                                            .text
-                                      });
+                                      if(checkedValue==cur_status) {
+                                        databaseReference.child(
+                                            "users/${widget.user
+                                                .uid}/notes/${key_}")
+                                            .update({
+                                          "title": noteHeadingController.text,
+                                          "description": noteDescriptionController
+                                              .text
+                                        });
+                                      }
+                                      else{
+                                        databaseReference.child(
+                                            "users/${widget.user
+                                                .uid}/notes/${key_}")
+                                            .update({
+                                          "title": noteHeadingController.text,
+                                          "description": noteDescriptionController
+                                              .text,
+                                          "done":checkedValue
+                                        });
+                                      }
                                       noteHeadingController.clear();
                                       noteDescriptionController.clear();
+                                      checkedValue=false;
                                     });
 
                                   }
@@ -638,6 +661,19 @@ class _NotesPageState extends State<NotesPage> {
                           ),
                         ),
                       ),
+                      FlatButton(
+                        child:is_done?Text("Mark as Not Done",style: TextStyle(backgroundColor: Colors.red,fontSize: 20),):Text("Mark as Done",style: TextStyle(backgroundColor: Colors.green,fontSize: 20)),
+                        onPressed: () {
+                          setState(() {
+                            if(is_done){
+                              checkedValue=false;
+                            }
+                            else{
+                              checkedValue=true;
+                            }
+                          });
+                        },  //  <-- leading Checkbox
+                      )
                     ],
                   ),
                 ),
