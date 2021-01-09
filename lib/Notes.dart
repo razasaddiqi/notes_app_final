@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'NotesPage.dart';
-
+import 'package:flutter_share_me/flutter_share_me.dart';
+import 'login.dart';
 class NotesPage extends StatefulWidget {
   // NotesPage({Key key}) : super(key: key);
   FirebaseAuth auth;
@@ -17,6 +18,8 @@ class NotesPage extends StatefulWidget {
 class _NotesPageState extends State<NotesPage> {
   var _formKey = GlobalKey<FormState>();
   var total_notes=0;
+  String cur_title='';
+  String cur_desc='';
 
   final databaseReference = FirebaseDatabase.instance.reference();
   // total_notes=databaseReference.child("users/${widget.user.uid}/notes/")
@@ -53,7 +56,7 @@ class _NotesPageState extends State<NotesPage> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: notesHeader(),
+        title: notesHeader(context),
       ),
       body: buildNotes(),
       floatingActionButton: FloatingActionButton(
@@ -77,8 +80,6 @@ class _NotesPageState extends State<NotesPage> {
       child: new StreamBuilder(
         stream: databaseReference.child("users/${widget.user.uid}/notes/").onValue,
         builder: (context, snap) {
-          print("IDDDDD");
-          print(widget.user.uid);
           if (snap.hasData &&
               !snap.hasError &&
               snap.data.snapshot.value != null) {
@@ -89,20 +90,28 @@ class _NotesPageState extends State<NotesPage> {
 
             // data.forEach(
             //         (index, data) => item.add({"key": index, ...data}));
-            print("Recorddddd00");
+            // print("Recorddddd00");
             // print(data['Semester 1']);
             return ListView.builder(
               itemCount: data.length,
               itemBuilder: (context, int index) {
                 String key = data.keys.elementAt(index);
-                return Padding(
+                return  GestureDetector(
+                  onLongPress: (){
+                    FlutterShareMe()
+                        .shareToWhatsApp(msg: "title:${data[key]["title"]}\nDescription:${data[key]["description"]}");
+                      // print("Kaam kr raha hai");
+                  },
+                  child:Padding(
                   padding: const EdgeInsets.only(bottom: 5.5),
                   child: new Dismissible(
                     key: UniqueKey(),
                     direction: DismissDirection.horizontal,
                     onDismissed: (direction) {
+                    if (direction == DismissDirection.endToStart) {
                       setState(() {
-                        databaseReference.child("users/${widget.user.uid}/notes/${key}").remove();
+                        databaseReference.child(
+                            "users/${widget.user.uid}/notes/${key}").remove();
                         // deletedNoteHeading = noteHeading[index];
                         // deletedNoteDescription = noteDescription[index];
                         // noteHeading.removeAt(index);
@@ -142,6 +151,17 @@ class _NotesPageState extends State<NotesPage> {
                         //   ),
                         // );
                       });
+                    }
+                    else{
+                      setState(() {
+                        noteHeadingController.text=data[key]['title'];
+                        noteDescriptionController.text=data[key]['description'];
+                        cur_title=data[key]['title'];
+                        cur_desc=data[key]['description'];
+                        _settingModalBottomSheet(context,is_update: true,key_: key);
+                      });
+
+                    }
                     },
                     background: ClipRRect(
                       borderRadius: BorderRadius.circular(5.5),
@@ -159,7 +179,7 @@ class _NotesPageState extends State<NotesPage> {
                                   color: Colors.white,
                                 ),
                                 Text(
-                                  "Delete",
+                                  "Update",
                                   style: TextStyle(color: Colors.white),
                                 ),
                               ],
@@ -195,7 +215,7 @@ class _NotesPageState extends State<NotesPage> {
                     ),
                     child: noteList(data[key]["title"],data[key]["description"],index),
                   ),
-                );
+                ));
               },
             );
           } else
@@ -271,7 +291,7 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
-  void _settingModalBottomSheet(context) {
+  void _settingModalBottomSheet(context,{is_update:false,key_:""}) {
     // print
     showModalBottomSheet(
       context: context,
@@ -312,21 +332,39 @@ class _NotesPageState extends State<NotesPage> {
                           GestureDetector(
                             onTap: () {
                               if (_formKey.currentState.validate()) {
-                                setState(() {
-                                  getnotes_length();
-                                  print(total_notes);
-                                  databaseReference.child("users/${widget.user.uid}/notes/${"id_"+total_notes.toString()}")
-                                      .update({
-                                    "title": noteHeadingController.text,
-                                    "description":noteDescriptionController.text
+                                if(is_update==false) {
+                                  setState(() {
+                                    getnotes_length();
+                                    databaseReference.child("users/${widget.user
+                                        .uid}/notes/${"id_" +
+                                        total_notes.toString()}")
+                                        .update({
+                                      "title": noteHeadingController.text,
+                                      "description": noteDescriptionController
+                                          .text
+                                    });
+                                    noteHeadingController.clear();
+                                    noteDescriptionController.clear();
                                   });
-                                  noteHeadingController.clear();
-                                  noteDescriptionController.clear();
-                                });
+                                }
+                                else{
+                                  if(noteHeadingController.text!=cur_title || noteDescriptionController.text!=cur_desc) {
+                                    setState(() {
+                                      databaseReference.child("users/${widget.user
+                                          .uid}/notes/${key_}")
+                                          .update({
+                                        "title": noteHeadingController.text,
+                                        "description": noteDescriptionController
+                                            .text
+                                      });
+                                      noteHeadingController.clear();
+                                      noteDescriptionController.clear();
+                                    });
+
+                                  }
+                                }
                                 Navigator.pop(context);
                               }
-                              print("Notes.dart LineNo:239");
-                              print(noteHeadingController.text);
                             },
                             child: Container(
                               child: Row(
@@ -414,7 +452,7 @@ class _NotesPageState extends State<NotesPage> {
   }
 }
 
-Widget notesHeader() {
+Widget notesHeader(context) {
   return Padding(
     padding: const EdgeInsets.only(
       top: 10,
@@ -424,14 +462,22 @@ Widget notesHeader() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children:[Text(
           "My Notes",
           style: TextStyle(
             color: Colors.blueAccent,
             fontSize: 25.00,
             fontWeight: FontWeight.w500,
           ),
-        ),
+        ),FlatButton(onPressed: (){
+
+          Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (context) => LoginPage()));
+        }, child: Text("Logout"))]
+
+      ),
         Divider(
           color: Colors.blueAccent,
           thickness: 2.5,
@@ -441,68 +487,6 @@ Widget notesHeader() {
   );
 }
 
-
-//
-//
-// ListView.builder(
-// // padding: EdgeInsets.symmetric(horizontal: 50),
-// itemCount: data.length,
-// itemBuilder: (context, index) {
-// return Column(
-//
-// children:[
-// index>0?SizedBox(height: 20,):SizedBox(height: 0,),
-// Text("Semester ${index+1}",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold), ),
-// SingleChildScrollView(
-//
-// child: DataTable(
-// horizontalMargin: 5,
-// // columnSpacing: 500,
-// showBottomBorder: true,
-// dividerThickness: 1,
-// headingRowColor:
-// MaterialStateColor.resolveWith((states) => Colors.blue),
-// showCheckboxColumn: false,
-// columns: [
-// // DataColumn(label: Text(
-// //     'Code',
-// //     style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)
-// // )),
-// DataColumn(label: Text(
-// 'Name',
-// style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)
-// )),
-// DataColumn(label: Text(
-// 'Credit',
-// style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-// textAlign: TextAlign.center,
-// )),
-// DataColumn(
-//
-// label: Text(
-// 'Marks',
-// style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-// textAlign: TextAlign.center,
-// )),
-// DataColumn(
-// label: Text(
-// 'GP',
-// style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-// textAlign: TextAlign.center,
-// )),
-// ],
-// rows: List.generate(
-// data['Semester ${index+1}'].length-1, (index_) => _getDataRow(data['Semester ${index+1}'][index_])),
-// ),
-// scrollDirection: my_axis.Axis.horizontal,
-//
-// ),
-//
-// Text("CGPA: ${data['Semester ${index+1}'].last['CGPA']}",style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),)
-// ]
-// );
-// },
-// ),
 
 
 

@@ -35,6 +35,7 @@ dependencies:
   firebase_dynamic_links:
   cloud_firestore:
   auto_size_text: ^2.1.0
+  flutter_share_me:
 
 dev_dependencies:
   flutter_test:
