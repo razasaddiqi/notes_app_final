@@ -35,17 +35,33 @@ class _NotesPageState extends State<NotesPage> {
     });
     return true;
   }
+  var _searchResult=[];
+  TextEditingController controller = new TextEditingController();
   @override
   void initState() {
     super.initState();
     notesDescriptionMaxLenth =
         notesDescriptionMaxLines * notesDescriptionMaxLines;
   }
+  onSearchTextChanged(String text) async {
+    _searchResult.clear();
+    if (text.isEmpty) {
+      setState(() {});
+      return;
+    }
+
+    // _userDetails.forEach((userDetail) {
+    //   if (userDetail.firstName.contains(text) || userDetail.lastName.contains(text))
+    //     _searchResult.add(userDetail);
+    // });
+
+    setState(() {});
+  }
 
   @override
   void dispose() {
-    noteDescriptionController.dispose();
-    noteHeadingController.dispose();
+    noteDescriptionController.clear();
+    noteHeadingController.clear();
     super.dispose();
   }
 
@@ -58,7 +74,35 @@ class _NotesPageState extends State<NotesPage> {
         elevation: 0,
         title: notesHeader(context),
       ),
-      body: buildNotes(),
+      body: Column(
+        children: [
+          Container(
+            color: Theme.of(context).primaryColor,
+            child: new Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: new Card(
+                child: new ListTile(
+                  leading: new Icon(Icons.search),
+                  title: new TextField(
+                    controller: controller,
+                    decoration: new InputDecoration(
+                        hintText: 'Search', border: InputBorder.none),
+                    onChanged: onSearchTextChanged,
+                  ),
+                  trailing: new IconButton(icon: new Icon(Icons.cancel), onPressed: () {
+                    controller.clear();
+                    onSearchTextChanged('');
+                  },),
+                ),
+              ),
+            ),
+          ),
+          Expanded(child: controller.text==""?buildNotes():searchNotes()),
+
+        ],
+      ),
+
+
       floatingActionButton: FloatingActionButton(
         mini: false,
         backgroundColor: Colors.blueAccent,
@@ -69,7 +113,161 @@ class _NotesPageState extends State<NotesPage> {
       ),
     );
   }
+  Widget searchNotes() {
+    return Padding(
+      padding: const EdgeInsets.only(
+        top: 10,
+        left: 10,
+        right: 10,
+      ),
+      child: new StreamBuilder(
+        stream: databaseReference.child("users/${widget.user.uid}/notes/").orderByChild("title").equalTo(controller.text).onValue,
+        builder: (context, snap) {
+          if (snap.hasData &&
+              !snap.hasError &&
+              snap.data.snapshot.value != null) {
+            // print(snap.data.snapshot.value);
+            Map data = snap.data.snapshot.value;
+            print(data);
+            List item = [];
 
+            // data.forEach(
+            //         (index, data) => item.add({"key": index, ...data}));
+            // print("Recorddddd00");
+            // print(data['Semester 1']);
+            return ListView.builder(
+              itemCount: data.length,
+              itemBuilder: (context, int index) {
+                String key = data.keys.elementAt(index);
+                return  GestureDetector(
+                    onLongPress: (){
+                      FlutterShareMe()
+                          .shareToWhatsApp(msg: "title:${data[key]["title"]}\nDescription:${data[key]["description"]}");
+                      // print("Kaam kr raha hai");
+                    },
+                    child:Padding(
+                      padding: const EdgeInsets.only(bottom: 5.5),
+                      child: new Dismissible(
+                        key: UniqueKey(),
+                        direction: DismissDirection.horizontal,
+                        onDismissed: (direction) {
+                          if (direction == DismissDirection.endToStart) {
+                            setState(() {
+                              databaseReference.child(
+                                  "users/${widget.user.uid}/notes/${key}").remove();
+                              // deletedNoteHeading = noteHeading[index];
+                              // deletedNoteDescription = noteDescription[index];
+                              // noteHeading.removeAt(index);
+                              // noteDescription.removeAt(index);
+                              // Scaffold.of(context).showSnackBar(
+                              //   new SnackBar(
+                              //     backgroundColor: Colors.purple,
+                              //     content: Row(
+                              //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              //       children: [
+                              //         new Text(
+                              //           "Note Deleted",
+                              //           style: TextStyle(),
+                              //         ),
+                              //         deletedNoteHeading != ""
+                              //             ? GestureDetector(
+                              //           onTap: () {
+                              //             print("undo");
+                              //             setState(() {
+                              //               if (deletedNoteHeading != "") {
+                              //                 noteHeading.add(deletedNoteHeading);
+                              //                 noteDescription
+                              //                     .add(deletedNoteDescription);
+                              //               }
+                              //               deletedNoteHeading = "";
+                              //               deletedNoteDescription = "";
+                              //             });
+                              //           },
+                              //           child: new Text(
+                              //             "Undo",
+                              //             style: TextStyle(),
+                              //           ),
+                              //         )
+                              //             : SizedBox(),
+                              //       ],
+                              //     ),
+                              //   ),
+                              // );
+                            });
+                          }
+                          else{
+                            setState(() {
+                              noteHeadingController.text=data[key]['title'];
+                              noteDescriptionController.text=data[key]['description'];
+                              cur_title=data[key]['title'];
+                              cur_desc=data[key]['description'];
+                              _settingModalBottomSheet(context,is_update: true,key_: key);
+                            });
+
+                          }
+                        },
+                        background: ClipRRect(
+                          borderRadius: BorderRadius.circular(5.5),
+                          child: Container(
+                            color: Colors.green,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 10),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.delete,
+                                      color: Colors.white,
+                                    ),
+                                    Text(
+                                      "Update",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        secondaryBackground: ClipRRect(
+                          borderRadius: BorderRadius.circular(5.5),
+                          child: Container(
+                            color: Colors.red,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.delete,
+                                      color: Colors.white,
+                                    ),
+                                    Text(
+                                      "Delete",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        child: noteList(data[key]["title"],data[key]["description"],index),
+                      ),
+                    ));
+              },
+            );
+          } else
+            return Center(child: Text("No data"));
+        },
+      ),
+
+    );
+  }
   Widget buildNotes() {
     return Padding(
       padding: const EdgeInsets.only(
