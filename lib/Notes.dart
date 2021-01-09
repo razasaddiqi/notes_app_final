@@ -16,7 +16,7 @@ class NotesPage extends StatefulWidget {
 
 class _NotesPageState extends State<NotesPage> {
   var _formKey = GlobalKey<FormState>();
-  var total_notes;
+  var total_notes=0;
 
   final databaseReference = FirebaseDatabase.instance.reference();
   // total_notes=databaseReference.child("users/${widget.user.uid}/notes/")
@@ -24,9 +24,10 @@ class _NotesPageState extends State<NotesPage> {
     // print(widget.user.uid);
     var snapshot = await databaseReference.child("users/${widget.user.uid}/notes/");
     snapshot.once().then((DataSnapshot snapshot){
+      // print(snapshot.value);
       total_notes  = snapshot.value.length;
-      if(total_notes==1){
-        total_notes=0;
+      if(total_notes==0){
+        total_notes=1;
       }
     });
     return true;
@@ -82,7 +83,7 @@ class _NotesPageState extends State<NotesPage> {
               !snap.hasError &&
               snap.data.snapshot.value != null) {
             // print(snap.data.snapshot.value);
-            List data = snap.data.snapshot.value;
+            Map data = snap.data.snapshot.value;
             print(data);
             List item = [];
 
@@ -93,14 +94,15 @@ class _NotesPageState extends State<NotesPage> {
             return ListView.builder(
               itemCount: data.length,
               itemBuilder: (context, int index) {
-                return data[index]!=null?Padding(
+                String key = data.keys.elementAt(index);
+                return Padding(
                   padding: const EdgeInsets.only(bottom: 5.5),
                   child: new Dismissible(
                     key: UniqueKey(),
                     direction: DismissDirection.horizontal,
                     onDismissed: (direction) {
                       setState(() {
-                        databaseReference.child("users/${widget.user.uid}/notes/${index}").remove();
+                        databaseReference.child("users/${widget.user.uid}/notes/${key}").remove();
                         // deletedNoteHeading = noteHeading[index];
                         // deletedNoteDescription = noteDescription[index];
                         // noteHeading.removeAt(index);
@@ -191,9 +193,9 @@ class _NotesPageState extends State<NotesPage> {
                         ),
                       ),
                     ),
-                    child: noteList(data[index]["title"],data[index]["description"],index),
+                    child: noteList(data[key]["title"],data[key]["description"],index),
                   ),
-                ):SizedBox(height: 0,);
+                );
               },
             );
           } else
@@ -313,8 +315,8 @@ class _NotesPageState extends State<NotesPage> {
                                 setState(() {
                                   getnotes_length();
                                   print(total_notes);
-                                  databaseReference.child("users/${widget.user.uid}/notes/${total_notes}/")
-                                      .set({
+                                  databaseReference.child("users/${widget.user.uid}/notes/${"id_"+total_notes.toString()}")
+                                      .update({
                                     "title": noteHeadingController.text,
                                     "description":noteDescriptionController.text
                                   });
