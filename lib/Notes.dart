@@ -7,6 +7,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'NotesPage.dart';
 import 'package:flutter_share_me/flutter_share_me.dart';
 import 'login.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:google_sign_in/google_sign_in.dart' as signIn;
 class NotesPage extends StatefulWidget {
   // NotesPage({Key key}) : super(key: key);
   FirebaseAuth auth;
@@ -300,7 +302,7 @@ class _NotesPageState extends State<NotesPage> {
                 return  GestureDetector(
                   onLongPress: (){
                     FlutterShareMe()
-                        .shareToWhatsApp(msg: "title:${data[key]["title"]}\nDescription:${data[key]["description"]}");
+                        .shareToSystem(msg: "title:${data[key]["title"]}\nDescription:${data[key]["description"]}");
                       // print("Kaam kr raha hai");
                   },
                   child:Padding(
