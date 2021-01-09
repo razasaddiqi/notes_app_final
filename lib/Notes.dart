@@ -110,7 +110,7 @@ class _NotesPageState extends State<NotesPage> {
         mini: false,
         backgroundColor: Colors.blueAccent,
         onPressed: () {
-          _settingModalBottomSheet(context);
+          _settingModalBottomSheet(context,is_done: false);
         },
         child: Icon(Icons.create),
       ),
@@ -221,7 +221,7 @@ class _NotesPageState extends State<NotesPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.delete,
+                                      Icons.update,
                                       color: Colors.white,
                                     ),
                                     Text(
@@ -494,7 +494,7 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
-  void _settingModalBottomSheet(context,{is_update:false,key_:"",is_done}) {
+  void _settingModalBottomSheet(context,{is_update:false,key_:"",is_done:false}) {
     // print
 
     showModalBottomSheet(
@@ -546,7 +546,7 @@ class _NotesPageState extends State<NotesPage> {
                                       "title": noteHeadingController.text,
                                       "description": noteDescriptionController
                                           .text,
-                                      "done":checkedValue
+                                      "done":is_done
                                     });
                                     noteHeadingController.clear();
                                     noteDescriptionController.clear();
@@ -554,19 +554,8 @@ class _NotesPageState extends State<NotesPage> {
                                   });
                                 }
                                 else{
-                                  if(noteHeadingController.text!=cur_title || noteDescriptionController.text!=cur_desc ) {
+                                  if(noteHeadingController.text!=cur_title || noteDescriptionController.text!=cur_desc || checkedValue!=cur_status) {
                                     setState(() {
-                                      if(checkedValue==cur_status) {
-                                        databaseReference.child(
-                                            "users/${widget.user
-                                                .uid}/notes/${key_}")
-                                            .update({
-                                          "title": noteHeadingController.text,
-                                          "description": noteDescriptionController
-                                              .text
-                                        });
-                                      }
-                                      else{
                                         databaseReference.child(
                                             "users/${widget.user
                                                 .uid}/notes/${key_}")
@@ -576,10 +565,10 @@ class _NotesPageState extends State<NotesPage> {
                                               .text,
                                           "done":checkedValue
                                         });
-                                      }
+
                                       noteHeadingController.clear();
                                       noteDescriptionController.clear();
-                                      checkedValue=false;
+                                      // checkedValue=false;
                                     });
 
                                   }
@@ -664,12 +653,15 @@ class _NotesPageState extends State<NotesPage> {
                       FlatButton(
                         child:is_done?Text("Mark as Not Done",style: TextStyle(backgroundColor: Colors.red,fontSize: 20),):Text("Mark as Done",style: TextStyle(backgroundColor: Colors.green,fontSize: 20)),
                         onPressed: () {
+                          print("mark press");
                           setState(() {
                             if(is_done){
                               checkedValue=false;
+                              is_done=false;
                             }
                             else{
                               checkedValue=true;
+                              is_done=true;
                             }
                           });
                         },  //  <-- leading Checkbox
