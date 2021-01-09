@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'package:notes_app_final/home.dart';
+import 'package:notes_app_final/login.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(SplashScreen());
 }
 
@@ -34,7 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Timer(
         Duration(seconds: 6),
             () => Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => home_app())));
+            context, MaterialPageRoute(builder: (context) => LoginPage())));
   }
   @override
   Widget build(BuildContext context) {
