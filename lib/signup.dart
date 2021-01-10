@@ -33,7 +33,6 @@ class _SignupPagePageState extends State<SignupPage> {
           .then((currentUser) => databaseReference.child("users/${currentUser.user.uid}")
           .set({
         "email": emailInputController.text,
-        "notes":[{"title":"Hello","description":"Hello this is the description"}]
       })
           .then((result) => {
         Navigator.pushReplacement(
